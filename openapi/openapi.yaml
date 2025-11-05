@@ -1,0 +1,33 @@
+openapi: 3.1.1
+info:
+  title: Mikke API
+  version: "1.0.0"
+  description: ミッケ！
+servers:
+  - url: http://mikke.trap.show/api/v1
+    description: production
+  - url: http://localhost:8080/api/v1
+    description: local
+paths:
+  /:
+    get:
+      summary: Root message
+      operationId: getRootMessage
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+components:
+  schemas:
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+      example:
+        message: "Hello, world!"
