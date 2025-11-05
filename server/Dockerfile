@@ -1,0 +1,11 @@
+FROM eclipse-temurin:24-jdk-noble AS build
+WORKDIR /app
+COPY . .
+RUN chmod +x gradlew
+RUN ./gradlew build --no-daemon
+
+FROM eclipse-temurin:24-jre-noble
+WORKDIR /app
+COPY --from=build /home/gradle/src/build/libs/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -1,0 +1,22 @@
+services:
+  db:
+    image: mariadb:latest
+    container_name: mikke_db_dev
+    expose:
+      - "3306"
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: 'mikke_dev_root'
+      MARIADB_DATABASE: 'mikke'
+      MARIADB_USER: 'mikke'
+      MARIADB_PASSWORD: 'mikke_dev'
+  adminer:
+    image: adminer
+    container_name: mikke_adminer_dev
+    restart: always
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
