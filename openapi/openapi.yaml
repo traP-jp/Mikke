@@ -3,6 +3,7 @@ info:
   title: Mikke API
   version: "1.0.0"
   description: ミッケ！
+
 servers:
   - url: https://mikke.trap.show/api/v1
     description: production
@@ -10,6 +11,7 @@ servers:
     description: development
   - url: http://localhost:8080/api/v1
     description: local
+
 paths:
   /ping:
     get:
@@ -23,18 +25,309 @@ paths:
                 $ref: '#/components/schemas/Pong'
       tags:
         - ping
+  /auth/login:
+    post:
+      summary: ログイン
+      description: traQ にログインするためのURLにリダイレクトします。
+      responses:
+        "302":
+          description: Found
+      tags:
+        - auth
+  /auth/logout:
+    post:
+      summary: ログアウト
+      description: ログアウトします。
+      responses:
+        "204":
+          description: No Content
+      tags:
+        - auth
+  /auth/callback:
+    get:
+      summary: 認証コールバック
+      description: traQ からの認証コールバックを受け取ります。
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Found
+      tags:
+        - auth
+  /users/me:
+    get:
+      summary: 自分のユーザー情報を取得
+      description: 自分のユーザー情報を取得します。
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+      tags:
+        - users
+  /users/{userId}:
+    get:
+      summary: ユーザー情報を取得
+      description: 指定されたユーザーの情報を取得します。
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - users
+  /users/{userId}/icon:
+    get:
+      summary: アイコンを取得
+      description: ユーザーのアイコンを取得します。traQのアイコンにリダイレクトします。
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        "302":
+          description: Found
+      tags:
+        - users
+  /users/{userId}/posts:
+    get:
+      summary: 投稿を取得
+      description: 指定されたユーザーの投稿一覧を取得します。
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - users
+  /posts:
+    get:
+      summary: タイムラインを取得
+      description: タイムラインを取得します。
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+      tags:
+        - posts
+    post:
+      summary: 投稿を作成
+      description: 新しい投稿を作成します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPost'
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+      tags:
+        - posts
+  /posts/{postId}:
+    get:
+      summary: 投稿を取得
+      description: 指定された投稿を取得します。
+      parameters:
+        - $ref: '#/components/parameters/postId'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - posts
+    put:
+      summary: 投稿を更新
+      description: 投稿を更新します。
+      parameters:
+        - $ref: '#/components/parameters/postId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePost'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - posts
+    delete:
+      summary: 投稿を削除
+      description: 投稿を削除します。
+      parameters:
+        - $ref: '#/components/parameters/postId'
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - posts
+  /posts/{postId}/guess:
+    post:
+      summary: ミッケ！
+      description: 投稿の場所をミッケ！します。
+      parameters:
+        - $ref: '#/components/parameters/postId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuessRequest'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuessResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - posts
+  /files:
+    post:
+      summary: ファイルをアップロード
+      description: ファイルをアップロードします。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+      tags:
+        - files
+  /files/{fileId}:
+    get:
+      summary: ファイルを取得
+      description: ファイルを取得します。
+      parameters:
+        - $ref: '#/components/parameters/fileId'
+      responses:
+        "200":
+          description: OK
+          content:
+            image/*: { }
+        "404":
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - files
+  /leaderboards/users:
+    get:
+      summary: ユーザーのランキングを取得
+      description: ユーザーのランキングを取得します。
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardUserEntry'
+      tags:
+        - leaderboards
+  /leaderboards/posts:
+    get:
+      summary: 投稿のランキングを取得
+      description: 投稿のランキングを取得します。
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardPostEntry'
+      tags:
+        - leaderboards
+
 components:
   schemas:
     Pong:
-        type: object
-        description: Ping レスポンス (サンプル)
-        properties:
-          message:
-            type: string
-            description: 応答メッセージ
-            example: 'pong!'
-        required:
-            - message
+      type: object
+      description: Ping レスポンス (サンプル)
+      properties:
+        message:
+          type: string
+          description: 応答メッセージ
+          example: 'pong!'
+      required:
+        - message
 
     User:
       type: object
@@ -344,7 +637,7 @@ components:
             write: '書き込み'
 
   parameters:
-    UserId:
+    userId:
       name: user-uuid
       in: path
       required: true
@@ -409,11 +702,14 @@ tags:
     description: テスト用
   - name: auth
     description: 認証 API
-  - name: posts
-    description: 投稿 API
   - name: users
     description: ユーザー API
+  - name: posts
+    description: 投稿 API
   - name: files
     description: ファイル API
   - name: leaderboards
     description: ランキング API
+
+security:
+  - traQAuth: [ ]
