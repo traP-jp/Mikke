@@ -14,6 +14,8 @@ uuid-creator = "6.1.1"
 ksp = "2.2.21-2.0.4"
 openapi = "7.17.0"
 ktlint = "13.1.0"
+flyway = "11.15.0"
+hikaricp = "7.0.2"
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -68,7 +70,9 @@ kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
 # Database
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 mariadb = { module = "org.mariadb.jdbc:mariadb-java-client", version.ref = "mariadb" }
+flyway = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 
 # Utils
 uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuid-creator" }
