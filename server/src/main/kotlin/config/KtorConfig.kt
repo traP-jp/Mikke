@@ -19,6 +19,7 @@ import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import jp.trap.mikke.di.AppModule
+import jp.trap.mikke.di.DatabaseModule
 import jp.trap.mikke.features.ping.controller.pingRouting
 import jp.trap.mikke.openapi.ApplicationCompressionConfiguration
 import jp.trap.mikke.openapi.ApplicationHstsConfiguration
@@ -32,7 +33,7 @@ import java.util.concurrent.TimeUnit
 fun Application.module() {
     install(Koin) {
         slf4jLogger()
-        modules(AppModule.module)
+        modules(AppModule.module, DatabaseModule.module)
     }
     install(StatusPages) {
         exception<Throwable> { call, cause ->

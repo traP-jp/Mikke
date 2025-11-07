@@ -56,6 +56,8 @@ dependencies {
     implementation(libs.koin.logger.slf4j)
 
     // Database
+    implementation(libs.hikaricp)
+    implementation(libs.flyway)
     runtimeOnly(libs.mariadb)
 
     // Test
