@@ -1,0 +1,16 @@
+#!/bin/bash
+
+ROOT_DIR=$(git rev-parse --show-toplevel)
+
+# shellcheck source=/dev/null
+source "$ROOT_DIR/.githooks/config.env"
+
+if [ "$ENABLE_CLIENT_HOOKS" == true ]; then
+    cd "$ROOT_DIR/client" || exit 1
+    "${ROOT_DIR}/.githooks/client/post-merge.sh"
+fi
+
+if [ "$ENABLE_SERVER_HOOKS" == true ]; then
+    cd "$ROOT_DIR/server" || exit 1
+    "${ROOT_DIR}/.githooks/server/post-merge.sh"
+fi
