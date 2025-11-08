@@ -26,11 +26,11 @@ import jp.trap.mikke.di.AppModule
 import jp.trap.mikke.di.DatabaseModule
 import jp.trap.mikke.di.EventSerializationModule
 import jp.trap.mikke.di.TraqClientModule
-import jp.trap.mikke.features.auth.controller.authRouting
+import jp.trap.mikke.features.auth.controller.authRoutes
 import jp.trap.mikke.features.auth.session.RedirectSession
 import jp.trap.mikke.features.auth.session.UserSession
-import jp.trap.mikke.features.ping.controller.pingRouting
-import jp.trap.mikke.features.websocket.controller.webSocketRouting
+import jp.trap.mikke.features.ping.controller.pingRoutes
+import jp.trap.mikke.features.websocket.controller.webSocketRoutes
 import jp.trap.mikke.openapi.ApplicationCompressionConfiguration
 import jp.trap.mikke.openapi.ApplicationHstsConfiguration
 import jp.trap.mikke.openapi.models.Error
@@ -143,9 +143,9 @@ fun Application.main() {
 fun Application.configureRouting() {
     routing {
         route("/api/v1") {
-            pingRouting()
-            authRouting()
-            webSocketRouting()
+            pingRoutes()
+            authRoutes()
+            webSocketRoutes()
             swaggerUI(path = "docs", swaggerFile = "openapi.yaml")
         }
     }

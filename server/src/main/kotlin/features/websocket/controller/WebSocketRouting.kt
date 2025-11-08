@@ -5,7 +5,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import org.koin.ktor.ext.inject
 
-fun Route.webSocketRouting() {
+fun Route.webSocketRoutes() {
     val handler by inject<WebSocketHandler>()
 
     authenticate("cookieAuth") {

@@ -6,7 +6,7 @@ import io.ktor.server.routing.*
 import jp.trap.mikke.openapi.Paths
 import org.koin.ktor.ext.inject
 
-fun Route.authRouting() {
+fun Route.authRoutes() {
     val authHandler by inject<AuthHandler>()
 
     get<Paths.login> {

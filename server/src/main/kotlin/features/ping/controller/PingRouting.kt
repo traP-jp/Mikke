@@ -5,7 +5,7 @@ import io.ktor.server.routing.*
 import jp.trap.mikke.openapi.Paths
 import org.koin.ktor.ext.inject
 
-fun Route.pingRouting() {
+fun Route.pingRoutes() {
     val pingHandler by inject<PingHandler>()
 
     get<Paths.ping> {
