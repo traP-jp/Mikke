@@ -1,3 +1,9 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import java.net.URI
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -5,6 +11,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.openapi.generator)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.shadow)
     application
 }
 
@@ -22,6 +29,8 @@ repositories {
 dependencies {
     // Ktor
     implementation(libs.ktor.client.apache)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.client.auth)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.status.pages)
@@ -29,6 +38,7 @@ dependencies {
     implementation(libs.ktor.server.resources)
     implementation(libs.ktor.server.swagger)
     implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.sessions)
     implementation(libs.ktor.server.auto.head.response)
     implementation(libs.ktor.server.default.headers)
     implementation(libs.ktor.server.hsts)
@@ -56,6 +66,9 @@ dependencies {
     implementation(libs.koin.logger.slf4j)
 
     // Database
+    implementation(libs.hikaricp)
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.mysql)
     runtimeOnly(libs.mariadb)
 
     // Test
@@ -72,6 +85,7 @@ dependencies {
 
 val specFile = rootProject.file("../openapi/openapi.yaml")
 val generatedOpenApiDir = layout.buildDirectory.dir("generated/openapi")
+val generatedTraqClientDir = layout.buildDirectory.dir("generated/traq-client")
 
 openApiGenerate {
     generatorName.set("kotlin-server")
@@ -99,8 +113,60 @@ openApiGenerate {
     packageName.set("jp.trap.mikke.openapi")
 }
 
+val downloadApiSpecTask =
+    tasks.register("downloadApiSpec") {
+        val url = "https://raw.githubusercontent.com/traPtitech/traQ/master/docs/v3-api.yaml"
+        val outputFile = layout.buildDirectory.file("downloaded-specs/v3-api.yaml")
+
+        outputs.file(outputFile)
+
+        doLast {
+            val targetFile = outputFile.get().asFile
+            targetFile.parentFile.mkdirs()
+
+            URI.create(url).toURL().openStream().use { input ->
+                Files.copy(input, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+    }
+
+tasks.register<GenerateTask>("generateTraqClient") {
+    dependsOn(downloadApiSpecTask)
+
+    generatorName.set("kotlin")
+    library.set("multiplatform")
+    globalProperties.set(
+        mapOf(
+            "apis" to "User,Me,Message,Channel,File,Stamp,Webhook,Oauth2",
+            "models" to "",
+            "supportingFiles" to "",
+        ),
+    )
+    additionalProperties.set(
+        mapOf(
+            "dateLibrary" to "kotlinx-datetime",
+            "enumPropertyNaming" to "UPPERCASE",
+        ),
+    )
+
+    inputSpec.set("${layout.buildDirectory.dir("downloaded-specs").get().asFile.absolutePath}/v3-api.yaml")
+
+    outputDir.set(generatedTraqClientDir.map { it.asFile.absolutePath })
+
+    typeMappings.set(
+        mapOf(
+            "UUID" to "kotlin.uuid.Uuid",
+            "uuid" to "kotlin.uuid.Uuid",
+            "string+date-time" to "Instant",
+        ),
+    )
+
+    packageName.set("jp.trap.mikke.traq.client")
+}
+
 sourceSets.main {
     kotlin.srcDir(generatedOpenApiDir.map { it.dir("src/main/kotlin") })
+    kotlin.srcDir(generatedTraqClientDir.map { it.dir("src/commonMain/kotlin") })
     resources {
         srcDir(specFile.parentFile)
     }
@@ -108,24 +174,34 @@ sourceSets.main {
 
 tasks.build {
     dependsOn(tasks.openApiGenerate)
+    dependsOn(tasks.named("generateTraqClient"))
+    dependsOn(tasks.shadowJar)
 }
 
 tasks.compileKotlin {
     dependsOn(tasks.openApiGenerate)
+    dependsOn(tasks.named("generateTraqClient"))
 }
 
 tasks.matching { it.name == "kspKotlin" }.configureEach {
     dependsOn(tasks.openApiGenerate)
+    dependsOn(tasks.named("generateTraqClient"))
 }
 
 tasks.test {
     useJUnitPlatform()
 }
 
+tasks.withType<ShadowJar> {
+    mergeServiceFiles()
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
         freeCompilerArgs.add("-opt-in=kotlin.uuid.ExperimentalUuidApi")
+        freeCompilerArgs.add("-opt-in=io.ktor.utils.io.InternalAPI")
     }
     jvmToolchain(24)
 }
