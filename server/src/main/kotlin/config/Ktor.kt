@@ -27,6 +27,8 @@ import jp.trap.mikke.di.DatabaseModule
 import jp.trap.mikke.di.EventSerializationModule
 import jp.trap.mikke.di.TraqClientModule
 import jp.trap.mikke.features.auth.controller.authRoutes
+import jp.trap.mikke.features.auth.infrastructure.DatabaseSessionStorage
+import jp.trap.mikke.features.auth.infrastructure.UserSessionTable
 import jp.trap.mikke.features.auth.session.RedirectSession
 import jp.trap.mikke.features.auth.session.UserSession
 import jp.trap.mikke.features.ping.controller.pingRoutes
@@ -121,7 +123,13 @@ fun Application.main() {
         }
     }
     install(Sessions) {
-        cookie<UserSession>("sid") {
+        cookie<UserSession>(
+            "sid",
+            DatabaseSessionStorage(
+                UserSessionTable,
+                60 * 60 * 24 * 7,
+            ),
+        ) {
             cookie.path = "/"
             cookie.maxAgeInSeconds = 60 * 60 * 24 * 7
         }
