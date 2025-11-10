@@ -19,13 +19,18 @@ import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import io.ktor.server.websocket.*
 import jp.trap.mikke.di.AppModule
 import jp.trap.mikke.di.DatabaseModule
+import jp.trap.mikke.di.EventSerializationModule
 import jp.trap.mikke.di.TraqClientModule
-import jp.trap.mikke.features.auth.controller.authRouting
+import jp.trap.mikke.features.auth.controller.authRoutes
+import jp.trap.mikke.features.auth.infrastructure.DatabaseSessionStorage
+import jp.trap.mikke.features.auth.infrastructure.UserSessionTable
 import jp.trap.mikke.features.auth.session.RedirectSession
 import jp.trap.mikke.features.auth.session.UserSession
-import jp.trap.mikke.features.ping.controller.pingRouting
+import jp.trap.mikke.features.ping.controller.pingRoutes
+import jp.trap.mikke.features.websocket.controller.webSocketRoutes
 import jp.trap.mikke.openapi.ApplicationCompressionConfiguration
 import jp.trap.mikke.openapi.ApplicationHstsConfiguration
 import jp.trap.mikke.openapi.models.Error
@@ -33,11 +38,17 @@ import org.koin.ksp.generated.module
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.seconds
 
 fun Application.main() {
     install(Koin) {
         slf4jLogger()
-        modules(AppModule.module, DatabaseModule.module, TraqClientModule.module)
+        modules(
+            AppModule.module,
+            DatabaseModule.module,
+            TraqClientModule.module,
+            EventSerializationModule.module,
+        )
     }
     install(StatusPages) {
         exception<Throwable> { call, cause ->
@@ -110,7 +121,13 @@ fun Application.main() {
         }
     }
     install(Sessions) {
-        cookie<UserSession>("sid") {
+        cookie<UserSession>(
+            "sid",
+            DatabaseSessionStorage(
+                UserSessionTable,
+                60 * 60 * 24 * 7,
+            ),
+        ) {
             cookie.path = "/"
             cookie.maxAgeInSeconds = 60 * 60 * 24 * 7
         }
@@ -119,6 +136,12 @@ fun Application.main() {
             cookie.maxAgeInSeconds = 60 * 5
         }
     }
+    install(WebSockets) {
+        pingPeriod = 15.seconds
+        timeout = 20.seconds
+        maxFrameSize = 1_000_000L
+        masking = false
+    }
 
     configureRouting()
 }
@@ -126,8 +149,9 @@ fun Application.main() {
 fun Application.configureRouting() {
     routing {
         route("/api/v1") {
-            pingRouting()
-            authRouting()
+            pingRoutes()
+            authRoutes()
+            webSocketRoutes()
             swaggerUI(path = "docs", swaggerFile = "openapi.yaml")
         }
     }

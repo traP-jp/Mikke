@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.ktor.server.hsts)
     implementation(libs.ktor.server.compression)
     implementation(libs.ktor.server.metrics)
+    implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.serialization.kotlinx.json)
 
     // Koin

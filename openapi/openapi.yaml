@@ -61,9 +61,17 @@ paths:
       summary: ログアウト
       operationId: logout
       description: ログアウトします。
+      parameters:
+        - name: redirect_to
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         "204":
           description: No Content
+        "302":
+          description: Found リダイレクト
       tags:
         - auth
   /auth/callback:

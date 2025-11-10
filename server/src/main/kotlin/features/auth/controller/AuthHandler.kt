@@ -1,20 +1,20 @@
 package jp.trap.mikke.features.auth.controller
 
-import io.ktor.client.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
-import jp.trap.mikke.config.Environment
+import jp.trap.mikke.common.TraqApiFactory
 import jp.trap.mikke.features.auth.session.RedirectSession
 import jp.trap.mikke.features.auth.session.UserSession
 import jp.trap.mikke.traq.client.apis.MeApi
 import org.koin.core.annotation.Single
+import kotlin.time.Instant
 
 @Single
 class AuthHandler(
-    private val apiHttpClient: HttpClient,
+    private val apiFactory: TraqApiFactory,
 ) {
     suspend fun handleLogin(call: ApplicationCall) {
         val redirectUrl = call.request.queryParameters["redirect_to"]
@@ -29,17 +29,49 @@ class AuthHandler(
 
         if (principal != null) {
             val token = principal.accessToken
-            val meApi =
-                MeApi(Environment.TRAQ_API_BASE_URL, apiHttpClient).apply {
-                    setAccessToken(token)
-                }
+            val refreshToken = principal.refreshToken
+            val expiresIn = principal.expiresIn
+            val meApi = apiFactory.createApi(::MeApi, token)
             val userInfo = meApi.getMe().body()
-            call.sessions.set(UserSession(userInfo.id, userInfo.name))
+            call.sessions.set(
+                UserSession(
+                    userInfo.id,
+                    userInfo.name,
+                    token,
+                    refreshToken,
+                    Instant.fromEpochSeconds(expiresIn),
+                ),
+            )
             val redirectSession = call.sessions.get<RedirectSession>()
             call.sessions.clear<RedirectSession>()
-            call.respondRedirect(redirectSession?.target ?: "/")
+            val redirectTo =
+                redirectSession?.let {
+                    if (validateRedirectUrl(it.target)) {
+                        it.target
+                    } else {
+                        "/"
+                    }
+                } ?: "/"
+            call.respondRedirect(redirectTo)
         } else {
             call.respond(HttpStatusCode.BadRequest, Error("OAuth failed"))
         }
+    }
+
+    suspend fun handleLogout(call: ApplicationCall) {
+        val redirectUrl = call.request.queryParameters["redirect_to"]
+        call.sessions.clear<UserSession>()
+        redirectUrl?.let {
+            if (validateRedirectUrl(redirectUrl)) {
+                call.respondRedirect(redirectUrl)
+                return
+            }
+        }
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    private fun validateRedirectUrl(url: String): Boolean {
+        val parsed = Url(url)
+        return parsed.isRelativePath
     }
 }
