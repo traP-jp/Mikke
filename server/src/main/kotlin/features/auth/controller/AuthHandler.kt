@@ -1,12 +1,11 @@
 package jp.trap.mikke.features.auth.controller
 
-import io.ktor.client.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
-import jp.trap.mikke.config.Environment
+import jp.trap.mikke.common.TraqApiFactory
 import jp.trap.mikke.features.auth.session.RedirectSession
 import jp.trap.mikke.features.auth.session.UserSession
 import jp.trap.mikke.traq.client.apis.MeApi
@@ -15,7 +14,7 @@ import kotlin.time.Instant
 
 @Single
 class AuthHandler(
-    private val apiHttpClient: HttpClient,
+    private val apiFactory: TraqApiFactory,
 ) {
     suspend fun handleLogin(call: ApplicationCall) {
         val redirectUrl = call.request.queryParameters["redirect_to"]
@@ -32,10 +31,7 @@ class AuthHandler(
             val token = principal.accessToken
             val refreshToken = principal.refreshToken
             val expiresIn = principal.expiresIn
-            val meApi =
-                MeApi(Environment.TRAQ_API_BASE_URL, apiHttpClient).apply {
-                    setAccessToken(token)
-                }
+            val meApi = apiFactory.createApi(::MeApi, token)
             val userInfo = meApi.getMe().body()
             call.sessions.set(
                 UserSession(
