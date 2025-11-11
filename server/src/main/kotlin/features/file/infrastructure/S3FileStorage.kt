@@ -20,9 +20,11 @@ import java.io.InputStream
 import kotlin.time.Clock
 
 @Single(binds = [FileStorage::class])
-class S3FileStorage : FileStorage {
+class S3FileStorage :
+    FileStorage,
+    AutoCloseable {
     private val bucketName: String = Environment.S3_BUCKET_NAME
-    private val endpoint: String = Environment.S3_ENDPOINT_URL
+    private val client: S3Client
 
     init {
         require(System.getenv("AWS_ACCESS_KEY_ID") != null) {
@@ -31,6 +33,13 @@ class S3FileStorage : FileStorage {
         require(System.getenv("AWS_SECRET_ACCESS_KEY") != null) {
             "AWS_SECRET_ACCESS_KEY is not set"
         }
+
+        client =
+            S3Client {
+                endpointUrl = Url.parse(Environment.S3_ENDPOINT_URL)
+                region = "us-east-1"
+                forcePathStyle = true
+            }
     }
 
     override suspend fun writeFile(
@@ -46,17 +55,14 @@ class S3FileStorage : FileStorage {
                 contentType = header.mimeType
             }
 
+        client.putObject(putObjectRequest)
+
         val headObject =
             HeadObjectRequest {
                 bucket = bucketName
                 key = header.id.toString()
             }
-
-        val response =
-            useClient {
-                it.putObject(putObjectRequest)
-                it.headObject(headObject)
-            }
+        val response = client.headObject(headObject)
 
         return FileInfo(
             id = header.id,
@@ -78,13 +84,11 @@ class S3FileStorage : FileStorage {
                 key = fileId.toString()
             }
 
-        return useClient { client ->
-            client.getObject(getObjectRequest) { response ->
-                val body = response.body ?: return@getObject block(null)
-                withContext(Dispatchers.IO) {
-                    body.toInputStream().use { inputStream ->
-                        block(inputStream)
-                    }
+        return client.getObject(getObjectRequest) { response ->
+            val body = response.body ?: return@getObject block(null)
+            withContext(Dispatchers.IO) {
+                body.toInputStream().use { inputStream ->
+                    block(inputStream)
                 }
             }
         }
@@ -97,14 +101,10 @@ class S3FileStorage : FileStorage {
                 key = fileId.toString()
             }
 
-        useClient { it.deleteObject(deleteObjectRequest) }
+        client.deleteObject(deleteObjectRequest)
     }
 
-    private suspend inline fun <R> useClient(block: (S3Client) -> R): R =
-        S3Client
-            .fromEnvironment {
-                endpointUrl = Url.parse(endpoint)
-                region = "us-east-1"
-                forcePathStyle = true
-            }.use(block)
+    override fun close() {
+        client.close()
+    }
 }

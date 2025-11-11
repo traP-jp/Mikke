@@ -10,4 +10,10 @@ data class FileInfo(
     val size: Long,
     val uploaderId: UserId,
     val createdAt: Instant,
-)
+) {
+    init {
+        require(filename.isNotBlank()) { "Filename must not be blank." }
+        require(mimeType.isNotBlank()) { "MimeType must not be blank." }
+        require(size >= 0) { "Size must be non-negative." }
+    }
+}

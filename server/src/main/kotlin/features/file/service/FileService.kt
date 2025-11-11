@@ -31,7 +31,12 @@ class FileService(
             )
 
         val info = fileStorage.writeFile(meta, data)
-        fileInfoRepository.save(info)
+        try {
+            fileInfoRepository.save(info)
+        } catch (e: Exception) {
+            fileStorage.deleteFile(info.id)
+            throw e
+        }
 
         return info
     }
@@ -44,7 +49,12 @@ class FileService(
     suspend fun getFileInfo(id: FileId): FileInfo? = fileInfoRepository.find(id)
 
     suspend fun deleteFile(id: FileId) {
-        fileStorage.deleteFile(id)
+        val fileInfo = getFileInfo(id) ?: return
         fileInfoRepository.delete(id)
+        try {
+            fileStorage.deleteFile(id)
+        } catch (_: Exception) {
+            fileInfoRepository.save(fileInfo)
+        }
     }
 }

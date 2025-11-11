@@ -46,25 +46,23 @@ class DatabaseFileInfoRepository : FileInfoRepository {
     override suspend fun find(id: FileId): FileInfo? =
         withContext(Dispatchers.IO) {
             transaction {
-                val result =
-                    FileInfoTable
-                        .selectAll()
-                        .where { FileInfoTable.id eq id.value.toJavaUuid() }
-                        .singleOrNull()
-
-                result?.let {
-                    FileInfo(
-                        id = id,
-                        filename = it[FileInfoTable.filename],
-                        mimeType = it[FileInfoTable.mimeType],
-                        size = it[FileInfoTable.size],
-                        uploaderId =
-                            UserId(
-                                it[FileInfoTable.uploaderId].toKotlinUuid(),
-                            ),
-                        createdAt = it[FileInfoTable.createdAt],
-                    )
-                }
+                FileInfoTable
+                    .selectAll()
+                    .where { FileInfoTable.id eq id.value.toJavaUuid() }
+                    .singleOrNull()
+                    ?.let {
+                        FileInfo(
+                            id = id,
+                            filename = it[FileInfoTable.filename],
+                            mimeType = it[FileInfoTable.mimeType],
+                            size = it[FileInfoTable.size],
+                            uploaderId =
+                                UserId(
+                                    it[FileInfoTable.uploaderId].toKotlinUuid(),
+                                ),
+                            createdAt = it[FileInfoTable.createdAt],
+                        )
+                    }
             }
         }
 

@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
 import kotlin.uuid.Uuid
+import jp.trap.mikke.features.file.domain.model.FileInfo as DomainFileInfo
 
 @Single
 class FileHandler(
@@ -52,17 +53,7 @@ class FileHandler(
                     )
                 }
 
-            call.respond(
-                HttpStatusCode.Created,
-                FileInfo(
-                    id = info.id.value,
-                    name = info.filename,
-                    mimeType = info.mimeType,
-                    propertySize = info.size,
-                    uploaderId = info.uploaderId.value,
-                    createdAt = info.createdAt,
-                ),
-            )
+            call.respond(HttpStatusCode.Created, info.toApiModel())
         } finally {
             part.dispose()
             multipart.forEachPart { it.dispose() }
@@ -70,37 +61,30 @@ class FileHandler(
     }
 
     suspend fun handleDownloadFile(call: ApplicationCall) {
-        val fileIdParam = call.parameters["fileId"] ?: throw IllegalArgumentException("fileId is required")
-        val id = FileId(Uuid.parse(fileIdParam))
+        withFile(call) { info ->
+            call.response.header(
+                HttpHeaders.CacheControl,
+                CacheControl
+                    .MaxAge(
+                        maxAgeSeconds = 3600,
+                        visibility = CacheControl.Visibility.Public,
+                    ).toString(),
+            )
 
-        val info =
-            fileService.getFileInfo(id) ?: run {
-                call.respond(HttpStatusCode.NotFound, Error("File info not found"))
-                return
-            }
+            fileService.useFileBody(info.id) { body ->
+                body ?: run {
+                    call.respond(HttpStatusCode.NotFound, Error("File not found"))
+                    return@useFileBody
+                }
 
-        call.response.header(
-            HttpHeaders.CacheControl,
-            CacheControl
-                .MaxAge(
-                    maxAgeSeconds = 3600,
-                    visibility = CacheControl.Visibility.Public,
-                ).toString(),
-        )
-
-        fileService.useFileBody(id) { body ->
-            body ?: run {
-                call.respond(HttpStatusCode.NotFound, Error("File not found"))
-                return@useFileBody
-            }
-
-            call.respondBytesWriter(
-                contentType = ContentType.parse(info.mimeType),
-                status = HttpStatusCode.OK,
-                contentLength = info.size,
-            ) {
-                body.use { inputStream ->
-                    inputStream.copyTo(this.toOutputStream())
+                call.respondBytesWriter(
+                    contentType = ContentType.parse(info.mimeType),
+                    status = HttpStatusCode.OK,
+                    contentLength = info.size,
+                ) {
+                    body.use { inputStream ->
+                        inputStream.copyTo(this.toOutputStream())
+                    }
                 }
             }
         }
@@ -111,27 +95,28 @@ class FileHandler(
             call.sessions.get<UserSession>()?.userId
                 ?: throw IllegalStateException("user not logged in")
         val userId = UserId(userIdRaw)
-        val fileIdParam =
-            call.parameters["fileId"]
-                ?: throw IllegalArgumentException("fileId is required")
-        val id = FileId(Uuid.parse(fileIdParam))
 
-        val info =
-            fileService.getFileInfo(id) ?: run {
-                call.respond(HttpStatusCode.NotFound, Error("File not found"))
-                return
+        withFile(call) { info ->
+            if (info.uploaderId != userId) {
+                call.respond(HttpStatusCode.Forbidden, Error("You do not have permission to delete this file"))
+                return@withFile
             }
 
-        if (info.uploaderId != userId) {
-            call.respond(HttpStatusCode.Forbidden, Error("You do not have permission to delete this file"))
-            return
+            fileService.deleteFile(info.id)
+            call.respond(HttpStatusCode.NoContent)
         }
-
-        fileService.deleteFile(id)
-        call.respond(HttpStatusCode.NoContent)
     }
 
     suspend fun handleGetFileMeta(call: ApplicationCall) {
+        withFile(call) { info ->
+            call.respond(info.toApiModel())
+        }
+    }
+
+    private suspend fun withFile(
+        call: ApplicationCall,
+        block: suspend (DomainFileInfo) -> Unit,
+    ) {
         val fileIdParam =
             call.parameters["fileId"]
                 ?: throw IllegalArgumentException("fileId is required")
@@ -143,16 +128,16 @@ class FileHandler(
                     call.respond(HttpStatusCode.NotFound, Error("File not found"))
                     return
                 }
-
-        call.respond(
-            FileInfo(
-                id = info.id.value,
-                name = info.filename,
-                mimeType = info.mimeType,
-                propertySize = info.size,
-                uploaderId = info.uploaderId.value,
-                createdAt = info.createdAt,
-            ),
-        )
+        block(info)
     }
+
+    private fun DomainFileInfo.toApiModel(): FileInfo =
+        FileInfo(
+            id = this.id.value,
+            name = this.filename,
+            mimeType = this.mimeType,
+            propertySize = this.size,
+            uploaderId = this.uploaderId.value,
+            createdAt = this.createdAt,
+        )
 }
