@@ -8,8 +8,12 @@ source "$ROOT_DIR/.githooks/config.env"
 cd "$ROOT_DIR" || exit 1
 
 if [ "$ENABLE_CLIENT_HOOKS" == true ]; then
-    cd "$ROOT_DIR/client" || exit 1
-    "${ROOT_DIR}/.githooks/client/pre-commit.sh"
+    CLIENT_STAGED=$(git diff --cached --name-only -- client | head -n 1)
+
+    if [ -n "$CLIENT_STAGED" ]; then
+        cd "$ROOT_DIR/client" || exit 1
+        "${ROOT_DIR}/.githooks/client/pre-commit.sh"
+    fi
 fi
 
 if [ "$ENABLE_SERVER_HOOKS" == true ]; then
