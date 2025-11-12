@@ -1,7 +1,7 @@
-package jp.trap.mikke.common.infrastructure
+package jp.trap.mikke.core.event.infrastructure
 
-import jp.trap.mikke.common.EventBus
-import jp.trap.mikke.common.model.AppEvent
+import jp.trap.mikke.core.event.EventBus
+import jp.trap.mikke.core.event.model.AppEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import org.koin.core.annotation.Single

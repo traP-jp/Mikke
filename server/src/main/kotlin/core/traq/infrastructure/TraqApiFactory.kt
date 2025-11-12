@@ -1,6 +1,6 @@
-package jp.trap.mikke.common
+package jp.trap.mikke.core.traq.infrastructure
 
-import io.ktor.client.*
+import io.ktor.client.HttpClient
 import jp.trap.mikke.config.Environment
 import jp.trap.mikke.traq.client.infrastructure.ApiClient
 

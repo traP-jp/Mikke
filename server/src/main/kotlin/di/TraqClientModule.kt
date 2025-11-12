@@ -4,7 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.apache.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
-import jp.trap.mikke.common.TraqApiFactory
+import jp.trap.mikke.core.traq.infrastructure.TraqApiFactory
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
 

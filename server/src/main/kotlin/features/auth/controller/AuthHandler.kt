@@ -5,7 +5,7 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
-import jp.trap.mikke.common.TraqApiFactory
+import jp.trap.mikke.core.traq.infrastructure.TraqApiFactory
 import jp.trap.mikke.features.auth.session.RedirectSession
 import jp.trap.mikke.features.auth.session.UserSession
 import jp.trap.mikke.traq.client.apis.MeApi

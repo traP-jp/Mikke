@@ -1,6 +1,6 @@
 package jp.trap.mikke.di
 
-import jp.trap.mikke.common.model.AppEvent
+import jp.trap.mikke.core.event.model.AppEvent
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic

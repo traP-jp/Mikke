@@ -1,6 +1,6 @@
-package jp.trap.mikke.common
+package jp.trap.mikke.core.event
 
-import jp.trap.mikke.common.model.AppEvent
+import jp.trap.mikke.core.event.model.AppEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterIsInstance
 

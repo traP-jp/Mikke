@@ -2,9 +2,9 @@ package jp.trap.mikke.features.websocket.controller
 
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import jp.trap.mikke.common.EventBus
-import jp.trap.mikke.common.model.AppEvent
-import jp.trap.mikke.common.on
+import jp.trap.mikke.core.event.EventBus
+import jp.trap.mikke.core.event.model.AppEvent
+import jp.trap.mikke.core.event.on
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch

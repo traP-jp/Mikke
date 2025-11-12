@@ -1,4 +1,4 @@
-package jp.trap.mikke.common.model
+package jp.trap.mikke.core.event.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
